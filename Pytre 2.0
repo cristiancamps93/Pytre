@@ -1,0 +1,150 @@
+# Cristian Camps Morillo - XXXXXX - Mitre Coverage Project
+"""
+#VERSION CONTROL
+#03/06/2022: First version of the script - provides a json file version 2.2 for attack navigator: https://mitre-attack.github.io/attack-navigator/
+
+#25/10/2022: Updated script to match requirements of version 4.6.6 of mitre map. Pytre 2.0
+
+# DOCUMENTATION
+#https://www.youtube.com/watch?v=8ASjvOIyyl8
+#Date codes: https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior
+"""
+
+# IMPORTS
+import pandas as pd
+import time
+import numpy as np
+import json
+
+# Output de alarms por technique y subtechnique TO DO
+#Check why there are outputs with 0 in tests correlations
+
+# DISCLAIMER1
+print("Hello, please re-fill the excel found in the same folder called 'Input.csv' with the same pattern.")
+print("")
+print("Notice that the input file must be encoded in UTF-8, otherwise the script won't work :)")
+print("")
+print("Once executed, this script will provide a json file that needs to be imported into the Mitre web application.")
+input("Press any key to execute:")
+
+
+# MASTER VARIABLES
+# How many alarms in the X minutes from the test start
+outputFile = "Output.json"
+inputFile = "Input.csv"
+minValue = 0 # Set up by Mitre Navigator
+maxValue = 100 #Set up by Mitre Navigator
+indenter = 4
+color = "#3182bd" #Light Blue
+enabled = True
+showSubtechniques = False #True = Show splitted subtechniques in the navigator, False = Only show techniques
+
+# Import data from the input as pandas object
+def importData(inputF):
+    # IMPORT INPUT DATA
+    # Technique ID;Play ID;
+    mitre = pd.read_csv(inputF, sep=';')
+    mitre = mitre.dropna()  # Clean NaN values
+
+    return mitre
+
+#Returns a sortered list based on the pandas object from the import function.
+def sortPanda(panda):
+    panda.sort_values('ID')
+
+    tecnicas = list(panda["ID"])
+    plays = list(panda['Play ID'])
+
+    #Control that the techniques and plays have the same amount of fields
+    if (len(tecnicas) - len(plays) == 0) and (len(tecnicas) - len(tactics) == 0):
+        return tecnicas, plays, tactics
+    else:
+        print("Import error in techniques or plays, please check that both fields contain the same amount of data")
+
+def writeJason(tecnicas, tactics):
+
+    # Creating the technique dictionary and filling it with the techniques in a dictionary list
+
+    items = []
+    it = 0
+
+    for line in tecnicas:
+        dictionaryTechnique = {
+            "techniqueID": tecnicas[it],
+            "color": color,
+            "comment": "",
+            "enabled": enabled,
+            "metadata": [],
+            "links": [],
+            "showSubtechniques": showSubtechniques
+        }
+        items.append(dictionaryTechnique)
+        it = it + 1
+
+
+    #Creating the main dictionary
+    dictionary = {
+        "name": "Getronics Coverage",
+        "versions": {
+            "attack": "11",
+            "navigator": "4.6.6",
+            "layer": "4.3"
+        },
+        "domain": "enterprise-attack",
+        "description": "",
+        "filters": {
+            "platforms": [
+                "Linux",
+                "macOS",
+                "Windows",
+                "PRE",
+                "Containers",
+                "Network",
+                "Office 365",
+                "SaaS",
+                "Google Workspace",
+                "IaaS",
+                "Azure AD"
+            ]
+        },
+        "sorting": 0,
+        "layout": {
+            "layout": "side",
+            "aggregateFunction": "average",
+            "showID": False,
+            "showName": True,
+            "showAggregateScores": False,
+            "countUnscored": False
+        },
+        "hideDisabled": False,
+        "techniques": items,
+        "gradient": {
+            "colors": [
+                "#ff6666ff",
+                "#ffe766ff",
+                "#8ec843ff"
+            ],
+            "minValue": minValue,
+            "maxValue": maxValue
+        },
+        "legendItems": [],
+        "metadata": [],
+        "links": [],
+        "showTacticRowBackground": False,
+        "tacticRowBackground": "#dddddd",
+        "selectTechniquesAcrossTactics": True,
+        "selectSubtechniquesWithParent": False
+    }
+
+    # Serializing json
+    json_object = json.dumps(dictionary, indent=indenter)
+
+    # Writing to sample.json
+    with open(outputFile, "w") as outfile:
+        outfile.write(json_object)
+
+
+if __name__ == "__main__":
+    panda = importData(inputFile)
+    tecnicas, plays = sortPanda(panda)
+    writeJason(tecnicas)
