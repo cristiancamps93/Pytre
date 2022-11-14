@@ -1,9 +1,15 @@
-# Cristian Camps Morillo - XXXXXX - XXXXXXXXXXXXXX
+# Cristian Camps Morillo - XXXXXXX - XXXXXXXXXXXXXXXX
 """
 #VERSION CONTROL
-#03/06/2022: First version of the script - provides a json file version 2.2 for attack navigator: https://mitre-attack.github.io/attack-navigator/
+Version 1.0:
+    03/06/2022: First version of the script - provides a json file version 2.2 for attack navigator: https://mitre-attack.github.io/attack-navigator/
 
-#25/10/2022: Updated script to match requirements of version 4.6.6 of mitre map. Pytre 2.0
+Version 2.0:
+    25/10/2022: Updated script to match requirements of version 4.6.6 of mitre map. Pytre 2.0
+
+Version 3.0:
+    14/11/2022: Updated script to match requirements of version 4.7.1 of Mitre + updated to Mitre 12.
+                Added new input file containing the play status + adding different color tags to display in navigator.
 
 # DOCUMENTATION
 #https://www.youtube.com/watch?v=8ASjvOIyyl8
@@ -29,22 +35,31 @@ input("Press any key to execute:")
 
 
 # MASTER VARIABLES
-# How many alarms in the X minutes from the test start
 outputFile = "Output.json"
 inputFile = "Input.csv"
 minValue = 0 # Set up by Mitre Navigator
 maxValue = 100 #Set up by Mitre Navigator
 indenter = 4
-color = "#3182bd" #Light Blue
+
+colorCoverage = "#31a354" #Green
+colorNoIntent = "#e60d0d" #Red
+colorNotAssessed = "#636363" #Red
+colorPlanned = "#fd8d3c" #Orange
+
 enabled = True
+disabled = False
+
 showSubtechniques = False #True = Show splitted subtechniques in the navigator, False = Only show techniques
+
+# END OF MASTER VARIABLES
+
 
 # Import data from the input as pandas object
 def importData(inputF):
     # IMPORT INPUT DATA
-    # Technique ID;Play ID;
+    # Technique ID;Play ID;Detection Rule Status
     mitre = pd.read_csv(inputF, sep=';')
-    mitre = mitre.dropna()  # Clean NaN values
+    #mitre = mitre.dropna()  # Clean NaN values -> Removed since now all the values must be considered
 
     return mitre
 
@@ -54,21 +69,37 @@ def sortPanda(panda):
 
     tecnicas = list(panda["ID"])
     plays = list(panda['Play ID'])
+    status = list(panda['Detection Rule Status'])
 
     #Control that the techniques and plays have the same amount of fields
-    if (len(tecnicas) - len(plays) == 0) and (len(tecnicas) - len(tactics) == 0):
-        return tecnicas, plays, tactics
+    if (len(tecnicas) - len(plays) == 0) and (len(tecnicas) - len(status) == 0):
+        return tecnicas, plays, status
     else:
         print("Import error in techniques or plays, please check that both fields contain the same amount of data")
 
-def writeJason(tecnicas, tactics):
+def writeJason(tecnicas, status):
 
     # Creating the technique dictionary and filling it with the techniques in a dictionary list
 
     items = []
     it = 0
 
+    color = ""
+
     for line in tecnicas:
+
+        if status[it] == "Coverage in place":
+            color = colorCoverage
+        elif status[it] == "Planned":
+            color = colorPlanned
+        elif status[it] == "Not assessed":
+            color = colorNotAssessed
+        elif status[it] == "No intent":
+            color = colorNoIntent
+        else:
+            print("Error in the if condition for the status colors")
+            break
+
         dictionaryTechnique = {
             "techniqueID": tecnicas[it],
             "color": color,
@@ -86,8 +117,8 @@ def writeJason(tecnicas, tactics):
     dictionary = {
         "name": "Getronics Coverage",
         "versions": {
-            "attack": "11",
-            "navigator": "4.6.6",
+            "attack": "12",
+            "navigator": "4.7.1",
             "layer": "4.3"
         },
         "domain": "enterprise-attack",
@@ -146,5 +177,5 @@ def writeJason(tecnicas, tactics):
 
 if __name__ == "__main__":
     panda = importData(inputFile)
-    tecnicas, plays = sortPanda(panda)
-    writeJason(tecnicas)
+    tecnicas, plays, status = sortPanda(panda)
+    writeJason(tecnicas, status)
